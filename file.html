@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertir Archivo a Base64</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z"
+      crossorigin="anonymous"
+    />
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h1 class="text-center">Convertir Archivo a Base64</h1>
+      <p class="text-center mt-3">
+        Sube un archivo para convertirlo en base64
+      </p>
+      <div class="form-group">
+        <input type="file" id="input" />
+      </div>
+      <div class="form-group">
+        <textarea
+          class="form-control"
+          id="result"
+          rows="10"
+          readonly
+        ></textarea>
+      </div>
+      <div class="form-group text-center">
+        <button class="btn btn-primary" id="encode">Codificar en Base64</button>
+      </div>
+      <div class="form-group text-center">
+        <button class="btn btn-secondary" id="copy">Copiar al Portapapeles</button>
+      </div>
+    </div>
+    <script>
+      const input = document.getElementById("input");
+      const result = document.getElementById("result");
+      const encodeBtn = document.getElementById("encode");
+      const copyBtn = document.getElementById("copy");
+
+      encodeBtn.addEventListener("click", function() {
+        const file = input.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+          result.value = btoa(e.target.result);
+        };
+
+        reader.readAsBinaryString(file);
+      });
+
+      copyBtn.addEventListener("click", function() {
+        result.select();
+        document.execCommand("copy");
+      });
+    </script>
+  </body>
+</html>
