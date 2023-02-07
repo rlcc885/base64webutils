@@ -3,7 +3,7 @@ import HomeView from './views/HomeView.vue'
 import FileView from './views/FileView.vue'
 
 export default () => createRouter({
-    history: createWebHistory(),
+    history: createWebHistory('/base64webutils/'),
     routes: [
         {
             path: '/',
