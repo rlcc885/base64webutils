@@ -42,8 +42,8 @@
                     <button type="button" class="btn btn-success" id="copy-btn" :title="buttons.copyBtn"
                         @click="copyOutput"><i class="bi bi-clipboard-check"></i> {{ buttons.copyBtn }}</button>
                     <button type="button" class="btn btn-info" id="download" :title="buttons.downloadBtn"
-                        @click="downloadOutput" v-if="isOutputFile"><i class="bi bi-cloud-download"></i> {{
-                            buttons.downloadBtn
+                        @click="downloadOutput"><i class="bi bi-cloud-download"></i> {{
+    buttons.downloadBtn
                         }}</button>
                 </div>
             </div>
@@ -78,13 +78,7 @@ export default {
     },
     computed: {
         isOutputFile() {
-            return this.isOutputPdf || this.isOutputPng;
-        },
-        isOutputPdf() {
-            return this.outputForm.startsWith('%PDF');
-        },
-        isOutputPng() {
-            return this.outputForm.startsWith('PNG');
+            return true;
         }
     },
     methods: {
@@ -113,21 +107,57 @@ export default {
             for (let i = 0; i < this.outputForm.length; i++) {
                 byteArray[i] = this.outputForm.charCodeAt(i);
             }
-            let mimeType = "application/octet-stream";
-            let extension = ".bin";
-            if (this.isOutputPdf) {
-                mimeType = "application/pdf";
-                extension = ".pdf";
-            }
-            if (this.isOutputPng) {
-                mimeType = "image/png";
-                extension = ".png";
-            }
+            let fileType = this.detectFileType(this.outputForm);
+            let mimeType = fileType.mimeType;
+            let extension = "." + fileType.type;
             const blob = new Blob([byteArray], { type: mimeType });
             const link = document.createElement("a");
             link.href = window.URL.createObjectURL(blob);
             link.download = `file${extension}`;
             link.click();
+        },
+        detectFileType(binaryString) {
+            const fileSignatures = {
+                jpeg: [0xff, 0xd8, 0xff],
+                png: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+                gif: [0x47, 0x49, 0x46, 0x38],
+                pdf: [0x25, 0x50, 0x44, 0x46],
+                mp3: [0x49, 0x44, 0x33],
+                mp4: [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32],
+                doc: [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1],
+                docx: [0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x06, 0x00],
+                xlsx: [0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x02, 0x00],
+                pptx: [0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x06, 0x00],
+                zip: [0x50, 0x4b, 0x03, 0x04],
+            };
+
+            const fileTypesToMimeTypes = {
+                jpeg: 'image/jpeg',
+                png: 'image/png',
+                gif: 'image/gif',
+                pdf: 'application/pdf',
+                mp3: 'audio/mpeg',
+                mp4: 'video/mp4',
+                doc: 'application/msword',
+                docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                zip: 'application/zip',
+            };
+
+            for (const [fileType, signature] of Object.entries(fileSignatures)) {
+                if (binaryString.startsWith(String.fromCharCode(...signature))) {
+                    return {
+                        type: fileType,
+                        mimeType: fileTypesToMimeTypes[fileType],
+                    };
+                }
+            }
+
+            return {
+                type: 'bin',
+                mimeType: 'application/octet-stream',
+            };
         }
     }
 }
