@@ -42,17 +42,24 @@
                     <button type="button" class="btn btn-success" id="copy-btn" :title="buttons.copyBtn"
                         @click="copyOutput"><i class="bi bi-clipboard-check"></i> {{ buttons.copyBtn }}</button>
                     <button type="button" class="btn btn-info" id="download" :title="buttons.downloadBtn"
-                        @click="downloadOutput"><i class="bi bi-cloud-download"></i> {{
-    buttons.downloadBtn
-                        }}</button>
+                        @click="downloadOutput"><i class="bi bi-cloud-download"></i> {{ buttons.downloadBtn }}</button>
                 </div>
             </div>
+        </div>
+        <div v-if="isPreviewFile" class="form-group">
+            <PdfB64Preview v-if="isPdfFile" :fileBase64="inputForm"></PdfB64Preview>
+            <ImgB64Preview v-if="isImgFile" :fileBase64="inputForm" :fileType="outputFileType"></ImgB64Preview>
+            <VideoB64Preview v-if="isVideoFile" :fileBase64="inputForm" :fileType="outputFileType"></VideoB64Preview>
         </div>
     </div>
 </template>
 <script>
+import ImgB64Preview from './ImgB64Preview.vue';
+import PdfB64Preview from './PdfB64Preview.vue';
+import VideoB64Preview from './VideoB64Preview.vue';
 export default {
-    name: 'Base64Text',
+    name: "Base64Text",
+    components: { PdfB64Preview, ImgB64Preview, VideoB64Preview },
     data() {
         return {
             componentName: `Base64 Encoder & Decoder`,
@@ -69,16 +76,26 @@ export default {
                 downloadBtn: `Descargar`,
                 cleanBtn: `Limpiar entrada`
             },
-            inputForm: '',
-            outputForm: ''
-        }
+            inputForm: "",
+            outputForm: "",
+            outputFileType: ""
+        };
     },
     mounted() {
-        console.log('vuejs mounted');
+        console.log("vuejs mounted");
     },
     computed: {
-        isOutputFile() {
-            return true;
+        isPreviewFile() {
+            return this.isPdfFile || this.isImgFile || this.isVideoFile;
+        },
+        isPdfFile() {
+            return this.outputFileType == "application/pdf";
+        },
+        isImgFile() {
+            return ['image/gif', 'image/jpeg', 'image/png'].indexOf(this.outputFileType) >= 0;
+        },
+        isVideoFile() {
+            return ['video/mp4', 'video/webm'].indexOf(this.outputFileType) >= 0;
         }
     },
     methods: {
@@ -87,6 +104,8 @@ export default {
         },
         decodeText() {
             this.outputForm = window.atob(this.inputForm);
+            let fileType = this.detectFileType(this.outputForm);
+            this.outputFileType = "application/octet-stream" == fileType.mimeType ? "" : fileType.mimeType;
         },
         swapText() {
             let swap = this.inputForm;
@@ -94,13 +113,13 @@ export default {
             this.outputForm = swap;
         },
         cleanAll() {
-            this.inputForm = '';
-            this.outputForm = '';
+            this.inputForm = "";
+            this.outputForm = "";
         },
         copyOutput() {
-            const result = document.getElementById('result');
+            const result = document.getElementById("result");
             result.select();
-            document.execCommand('copy');
+            document.execCommand("copy");
         },
         downloadOutput() {
             const byteArray = new Uint8Array(this.outputForm.length);
@@ -108,6 +127,7 @@ export default {
                 byteArray[i] = this.outputForm.charCodeAt(i);
             }
             let fileType = this.detectFileType(this.outputForm);
+            this.outputFileType = "application/octet-stream" == fileType.mimeType ? "" : fileType.mimeType;
             let mimeType = fileType.mimeType;
             let extension = "." + fileType.type;
             const blob = new Blob([byteArray], { type: mimeType });
@@ -118,33 +138,35 @@ export default {
         },
         detectFileType(binaryString) {
             const fileSignatures = {
-                jpeg: [0xff, 0xd8, 0xff],
-                png: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
-                gif: [0x47, 0x49, 0x46, 0x38],
-                pdf: [0x25, 0x50, 0x44, 0x46],
-                mp3: [0x49, 0x44, 0x33],
-                mp4: [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32],
-                doc: [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1],
-                docx: [0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x06, 0x00],
-                xlsx: [0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x02, 0x00],
-                pptx: [0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x06, 0x00],
-                zip: [0x50, 0x4b, 0x03, 0x04],
+                jpeg: [255, 216, 255],
+                png: [137, 80, 78, 71, 13, 10, 26, 10],
+                gif: [71, 73, 70, 56],
+                pdf: [37, 80, 68, 70],
+                mp3: [73, 68, 51],
+                m4v: [0, 0, 0, 24, 102, 116, 121, 112, 109, 112, 52, 50],
+                mp4: [0, 0, 0, 32, 102, 116, 121, 112],
+                webm: [26, 69, 223, 163],
+                doc: [208, 207, 17, 224, 161, 177, 26, 225],
+                docx: [80, 75, 3, 4, 20, 0, 6, 0],
+                xlsx: [80, 75, 3, 4, 20, 0, 2, 0],
+                pptx: [80, 75, 3, 4, 20, 0, 6, 0],
+                zip: [80, 75, 3, 4],
             };
-
             const fileTypesToMimeTypes = {
-                jpeg: 'image/jpeg',
-                png: 'image/png',
-                gif: 'image/gif',
-                pdf: 'application/pdf',
-                mp3: 'audio/mpeg',
-                mp4: 'video/mp4',
-                doc: 'application/msword',
-                docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                zip: 'application/zip',
+                jpeg: "image/jpeg",
+                png: "image/png",
+                gif: "image/gif",
+                pdf: "application/pdf",
+                mp3: "audio/mpeg",
+                m4v: "video/mp4",
+                mp4: "video/mp4",
+                webm: "video/webm",
+                doc: "application/msword",
+                docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                zip: "application/zip",
             };
-
             for (const [fileType, signature] of Object.entries(fileSignatures)) {
                 if (binaryString.startsWith(String.fromCharCode(...signature))) {
                     return {
@@ -153,10 +175,9 @@ export default {
                     };
                 }
             }
-
             return {
-                type: 'bin',
-                mimeType: 'application/octet-stream',
+                type: "bin",
+                mimeType: "application/octet-stream",
             };
         }
     }
